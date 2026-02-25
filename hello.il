@@ -1,0 +1,8 @@
+goto(7)
+goto(3)
+goto(5)
+write("your num ! 1")
+goto(8)
+write("your num == 1")
+goto(8)
+goto(1+ (getnum("your num: ") == 1))
