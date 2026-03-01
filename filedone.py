@@ -7,7 +7,6 @@ trash = ''
 with open(filename, "r") as file:
     lines = file.read()
     lines2 = lines.split('\n')
-    print(lines2)
     alines = tk.execute_tokenizer(lines)
     itpt = intr.Interpriter()
     i = 0
