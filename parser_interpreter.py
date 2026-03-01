@@ -115,9 +115,29 @@ def execME(a):
                     case "%":
                         return a[0] % a[2], error
                     case "<<":
-                        return a[0] << a[2], error
+                        def binshiftleft(num, val):
+                            naf = 0
+                            while num * (10**naf) % 1 > 0:
+                                naf +=1
+                            num *= 10**naf
+                            num = (int(num) << val) / (10**naf)
+                            return num
+                        try:
+                            return binshiftleft(a[0], int(a[2])), error
+                        except ValueError:
+                            return 0, [True, 'CBSFNOT', []]
                     case ">>":
-                        return a[0] >> a[2], error
+                        def binshiftright(num, val):
+                            naf = 0
+                            while num * (10**naf) % 1 > 0:
+                                naf +=1
+                            num *= 10**naf
+                            num = (int(num) >> val) / (10**naf)
+                            return num
+                        try:
+                            return binshiftright(a[0], int(a[2])), error
+                        except ValueError:
+                            return 0, [True, 'CBSFNOT', []]
                     case "==":
                         return a[0] == a[2], error
                     case "<":
@@ -637,6 +657,8 @@ class Interpriter():
                     print("Unmatched opening bracket")
                 case "NAN":
                     print(f"Not a Number: {error[2][0]}")
+                case "CBSFNOT":
+                    print(f"cannot binary shift a fractional number of times")
                 case "":
                     print("This program has suffered major brain damage")
 
@@ -646,7 +668,7 @@ if __name__ == "__main__":
     itpt =  Interpriter()
     tokens0 = tk.execute_tokenizer("a = getnum('hello!: ')")[0]
     tokens1 = tk.execute_tokenizer("b = ~a")[0]
-    tokens2 = tk.execute_tokenizer("write(b)")[0]
+    tokens2 = tk.execute_tokenizer("write(1 << 1)")[0]
     #print(tokens2)
     itpt.interpret(tokens0)
     itpt.interpret(tokens1)
