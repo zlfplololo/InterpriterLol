@@ -50,6 +50,7 @@ def GTT():
         COMMA = r','
         DIVIDER = r';'
         NEWLINE = r'\n'
+        COMMENT = r'#.*\n'
     class AbstractType(enum.Enum):
         GROUP = 0
         INDEX = 1
@@ -90,6 +91,8 @@ def execute_tokenizer(string):
                                 tokens.append({"TYPE": token, 'value': value})
                             case self.tokentype.DIVIDER:
                                 pass
+                            case self.tokentype.COMMENT:
+                                pass
                             case _:
                                 tokens.append({"TYPE": token})
                         pos += len(value)
@@ -125,7 +128,7 @@ def execute_tokenizer(string):
                 i-=1
 
             for i in scpL:
-                result[i[0]:i[1]+1] = [{"TYPE": self.abstractype.GROUP, "value": self.AllProc(result[i[0]+1:i[1]])}]
+                result[i[0]:i[1]+1] = self.RSN([{"TYPE": self.abstractype.GROUP, "value": self.AllProc(result[i[0]+1:i[1]])}])
             
             i = len(result) -1
             qscc = 0
@@ -150,7 +153,7 @@ def execute_tokenizer(string):
                 i-=1
 
             for i in qscpL:
-                result[i[0]:i[1]+1] = [{"TYPE": self.abstractype.INDEX, "value": self.AllProc(result[i[0]+1:i[1]])}]
+                result[i[0]:i[1]+1] = self.RSN([{"TYPE": self.abstractype.INDEX, "value": self.AllProc(result[i[0]+1:i[1]])}])
 
             return result
 
@@ -163,13 +166,13 @@ def execute_tokenizer(string):
                         if j['TYPE'] == self.tokentype.COMMA:
                             isacollectione = True
                     if isacollectione:
-                        result[i] = {"TYPE": self.abstractype.COLLECTION, 'value': [self.AllProc(i) for i in splitlistby(val['value'], {"TYPE": self.tokentype.COMMA})]}
+                        result[i] = {"TYPE": self.abstractype.COLLECTION, 'value': [self.AllProc(i, last=True) for i in splitlistby(val['value'], {"TYPE": self.tokentype.COMMA})]}
                 if val["TYPE"] == self.abstractype.INDEX:
                     for j in val['value']:
                         if j['TYPE'] == self.tokentype.COMMA:
                             isacollectione = True
                     if isacollectione:
-                        result[i] = {"TYPE": self.abstractype.LIST, 'items': [self.AllProc(i) for i in splitlistby(val['value'], {"TYPE": self.tokentype.COMMA})]}
+                        result[i] = {"TYPE": self.abstractype.LIST, 'items': [self.AllProc(i, last=True) for i in splitlistby(val['value'], {"TYPE": self.tokentype.COMMA})]}
             return result
         
         def Proc(self, tokens):
@@ -193,6 +196,8 @@ def execute_tokenizer(string):
                             result[i-1:i+1] = [{"TYPE": self.abstractype.GETINDEX, 'name': [result[i-1]], 'value': result[i]['value']+[result[i]['name'][0]['value']]}]
                             i-=1
                         result[i]['name'] = self.RIT(result[i]['name'])
+                        for j in range(len(result[i]["value"])):
+                            result[i]['value'][j] = self.RIT(result[i]["value"][j])
                 if result[i-1]["TYPE"] == self.tokentype.REFERENCE_SYMBOL:
                     result[i-1:i+1] = [{"TYPE": self.abstractype.REFERENCE, 'value': self.RIT([result[i]])[0]}]
                     i-=1
@@ -218,8 +223,12 @@ def execute_tokenizer(string):
                     for j in range(i, len(result)):
                         if result[j]["TYPE"] == self.tokentype.STOP_SET or result[j]["TYPE"] == self.tokentype.NEWLINE:
                             value[1] = j
+                            if result[j]["TYPE"] == self.tokentype.NEWLINE:
+                                remainlastone = True
+                            else:
+                                remainlastone = False
                             break
-                    result[i-1:len(result) if value[1] < 0 else value[1]+1] = [{"TYPE": self.abstractype.SETVAR, "name": result[i-1], "value": self.RIT(result[value[0]:len(result) if value[1] < 0 else value[1]])}]
+                    result[i-1:len(result) if value[1] < 0 else value[1]+1 if not remainlastone else value[1]] = [{"TYPE": self.abstractype.SETVAR, "name": result[i-1], "value": self.RIT(result[value[0]:len(result) if value[1] < 0 else value[1]])}]
                     i-=1
                     isalredyminused = True
                 if result[i]['TYPE'] == self.tokentype.SET_REFERENCE:
@@ -227,20 +236,25 @@ def execute_tokenizer(string):
                     for j in range(i, len(result)):
                         if result[j]["TYPE"] == self.tokentype.STOP_SET or result[j]["TYPE"] == self.tokentype.NEWLINE:
                             value[1] = j
+                            if result[j]["TYPE"] == self.tokentype.NEWLINE:
+                                remainlastone = True
+                            else:
+                                remainlastone = False
                             break
-                    result[i-1:len(result) if value[1] < 0 else value[1]+1] = [{"TYPE": self.abstractype.SETREFVAR, "name": result[i-1], "value": self.RIT(result[value[0]:len(result) if value[1] < 0 else value[1]])}]
+                    result[i-1:len(result) if value[1] < 0 else value[1]+1 if not remainlastone else value[1]] = [{"TYPE": self.abstractype.SETREFVAR, "name": result[i-1], "value": self.RIT(result[value[0]:len(result) if value[1] < 0 else value[1]])}]
                     i-=1
                     isalredyminused = True
                 if not isalredyminused:
                     i-=1
             return result
-        def RIT(self, tokens):
+        def RIT(self, tokens, leaveN = False):
             result = tokens.copy()
             i = len(result)-1
             while i >= 0:
                 match result[i]['TYPE']:
                     case self.tokentype.NEWLINE:
-                        result.pop(i)
+                        if not leaveN:
+                            result.pop(i)
                     case self.tokentype.REFERENCE_SYMBOL:
                         result.pop(i)
                     case self.tokentype.STOP_SET:
@@ -255,13 +269,29 @@ def execute_tokenizer(string):
                     case self.abstractype.INDEX:
                         result[i] = {'TYPE':self.abstractype.LIST, 'items': [val['value']] if len(val['value']) > 0 else []}
             return result
-        def AllProc(self, tokens, last = False):
+        def RSN(self, tokens):
+            result = tokens.copy()
+            i = len(result)-1
+            while i >= 0:
+                match result[i]['TYPE']:
+                    case self.tokentype.NEWLINE:
+                        result.pop(i)
+                i-=1
+            return result
+        def AllProc(self, tokens, last = False, splitbySN = False):
             if last:
-                return self.RIT(self.Proc(self.BTC(self.group_brackets(tokens))))
+                if not splitbySN:
+                    return self.RIT(self.Proc(self.BTC(self.group_brackets(tokens))))
+                else:
+                    return splitlistby(self.RIT(self.Proc(self.BTC(self.group_brackets(tokens))), leaveN=True), self.compile('\n')[0])
             else:
                 return self.Proc(self.BTC(self.group_brackets(tokens)))
     tokenizer = TOKENIZER(GTT())
-    return tokenizer.AllProc(tokenizer.compile(string), last=True)
+    return tokenizer.AllProc(tokenizer.compile(string), last=True, splitbySN=True)
 
 if __name__ == "__main__":
-    print(execute_tokenizer("~a[0]"))
+    print(execute_tokenizer('''
+                            # assling
+                            write(a)
+                            a = 1
+                            write(i)'''))

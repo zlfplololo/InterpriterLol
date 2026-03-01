@@ -234,7 +234,7 @@ class Interpriter():
                                             except IndexError:
                                                 return 0, [True, "LIOOR", [argC[i]['value'][j][0]['value']]]
                                             else:
-                                                selectedval = tk.execute_tokenizer("0")
+                                                selectedval = tk.execute_tokenizer("0")[0]
                                     else:
                                         return 0, [True, "IFNE", []]
                                 else: return 0, [True, "NCDT", [argC[i]['value'][0]['TYPE']]]
@@ -343,14 +343,14 @@ class Interpriter():
             argD, error = execME(BT(Mathparcify(argD))[0])
             if not error[0]:
                 if type(argD) == float:
-                    argD = tk.execute_tokenizer(f"{argD}")
+                    argD = tk.execute_tokenizer(f"{argD}")[0]
                 elif type(argD) == bool:
                     if argD:
-                        argD = tk.execute_tokenizer("1")
+                        argD = tk.execute_tokenizer("1")[0]
                     else:
-                        argD = tk.execute_tokenizer("0")
+                        argD = tk.execute_tokenizer("0")[0]
                 elif type(argD) == str:
-                    argD = tk.execute_tokenizer(f"{'"' if not ('"' in argD) else "'"}{argD}{'"' if not ('"' in argD) else "'"}")
+                    argD = tk.execute_tokenizer(f"{'"' if not ('"' in argD) else "'"}{argD}{'"' if not ('"' in argD) else "'"}")[0]
                 elif type(argD) == list:
                     argD = [{"TYPE": Abstractype.LIST, 'items': argD}]
             return argD, error
@@ -423,7 +423,7 @@ class Interpriter():
                                         match arg[0]["TYPE"].name:
                                             case TokenType.STRING.name:
                                                 res = input(arg[0]['value'])
-                                                return -3, tk.execute_tokenizer(f"{'"' if "'" in res else "'"}{res}{'"' if "'" in res else "'"}")[0]
+                                                return -3, tk.execute_tokenizer(f"{'"' if "'" in res else "'"}{res}{'"' if "'" in res else "'"}")[0][0]
                                             case _:
                                                 error = [True, "NCDT", [arg[0]["TYPE"]]]
                                                 break
@@ -438,7 +438,7 @@ class Interpriter():
                                             case TokenType.STRING.name:
                                                 res = input(arg[0]['value'])
                                                 if re.fullmatch(r'-?\d+(\.\d+)?', res):
-                                                    return -3, tk.execute_tokenizer(f"{res}")[0]
+                                                    return -3, tk.execute_tokenizer(f"{res}")[0][0]
                                                 else:
                                                     error = [True, "NAN", [res]]
                                             case _:
@@ -481,7 +481,7 @@ class Interpriter():
                                                                 error = [True, "LIOOR", [token['name']['value'][j][0]['value']]]
                                                                 break
                                                             else:
-                                                                selectedval = tk.execute_tokenizer("0")
+                                                                selectedval = tk.execute_tokenizer("0")[0]
                                                     else:
                                                         error = [True, "IFNE", []]
                                                         break
@@ -510,7 +510,7 @@ class Interpriter():
                                                                         error = [True, "LIOOR", [token['name']['value'][j][0]['value']]]
                                                                         break
                                                                     else:
-                                                                        toproc = tk.execute_tokenizer("0")
+                                                                        toproc = tk.execute_tokenizer("0")[0]
                                                             else:
                                                                 error = [True, "IFNE", []]
                                                                 break
@@ -555,7 +555,7 @@ class Interpriter():
                                                                 error = [True, "LIOOR", [token['name']['value'][j][0]['value']]]
                                                                 break
                                                             else:
-                                                                selectedval = tk.execute_tokenizer("0")
+                                                                selectedval = tk.execute_tokenizer("0")[0]
                                                     else:
                                                         error = [True, "IFNE", []]
                                                         break
@@ -582,7 +582,7 @@ class Interpriter():
                                                                         error = [True, "LIOOR", [token['name']['value'][j][0]['value']]]
                                                                         break
                                                                     else:
-                                                                        toproc = tk.execute_tokenizer("0")
+                                                                        toproc = tk.execute_tokenizer("0")[0]
                                                             else:
                                                                 error = [True, "IFNE", []]
                                                                 break
@@ -644,9 +644,9 @@ class Interpriter():
         return -1, 0
 if __name__ == "__main__":
     itpt =  Interpriter()
-    tokens0 = tk.execute_tokenizer("a = [2]")
-    tokens1 = tk.execute_tokenizer("b = ~a")
-    tokens2 = tk.execute_tokenizer("write(b)")
+    tokens0 = tk.execute_tokenizer("a = getnum('hello!: ')")[0]
+    tokens1 = tk.execute_tokenizer("b = ~a")[0]
+    tokens2 = tk.execute_tokenizer("write(b)")[0]
     #print(tokens2)
     itpt.interpret(tokens0)
     itpt.interpret(tokens1)

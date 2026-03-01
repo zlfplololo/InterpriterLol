@@ -10,4 +10,4 @@ while True:
     a = input('>>> ')
     if a.lower() == 'exit':
         break
-    itpt.interpret(tk.execute_tokenizer(a))
+    itpt.interpret(tk.execute_tokenizer(a)[0])
