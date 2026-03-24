@@ -2,17 +2,18 @@
 import tokenizer as tk
 import parser_interpreter as intr
 import sys
+from copy import deepcopy
 filename = sys.argv[1]
 trash = ''
 with open(filename, "r") as file:
     lines = file.read()
-    lines2 = lines.split('\n')
     alines = tk.execute_tokenizer(lines)
+    blines = deepcopy(alines)
     itpt = intr.Interpriter()
     i = 0
     while i < len(alines):
         ret, trash = itpt.interpret(alines[i])
-        alines[i] = tk.execute_tokenizer(lines2[i])[0]
+        alines[i] = deepcopy(blines[i])
         if ret == -2:
             break
         elif ret > -1:
