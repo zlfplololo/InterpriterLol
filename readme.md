@@ -7,8 +7,8 @@ so, the commands are:
 | :--- | :--- | :--- |
 | write | **value:**<br>• String<br>• number<br>• List<br>• Reference | writes out the value into the terminal (or wherever you're running this) |
 | goto | **value:**<br>• Number (without a fractional part) | goes to the line specified in the value (note that the lines start with 0) |
-| get | **value:**<br>• String | requests a string from the user with the value as what it asks |
-| getnum | **value:**<br>• String | requests a number from the user with the value as what it asks |
+| get | **value:**<br>• String | prompts the value to the user, storing the user input as a string |
+| getnum | **value:**<br>• String | prompts the value to the user, storing the user input as a number |
 
 
 # References
@@ -53,6 +53,16 @@ also, less than or equal is `=<` insted of `<=` to better match its
 counterpart `>=`
 
 every number is a python* float by default, but stored as a string, so if you input `write(1)` it will output `1`, but if you input `write(1-0)` it will output 1.0
+
+Btw it is called a number in the code
+
+# Terminology
+float -> number
+string
+list/array
+nonexistant standart terminology -> reference
+(...) -> group (when a part or a math expression)
+the `...` inside the () -> collection
 
 ### why does this work?
 
