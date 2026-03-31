@@ -58,10 +58,15 @@ Btw it is called a number in the code
 
 # Terminology
 float -> number
+
 string
+
 list/array
+
 nonexistant standart terminology -> reference
+
 (...) -> group (when a part or a math expression)
+
 the `...` inside the () -> collection
 
 ### why does this work?
