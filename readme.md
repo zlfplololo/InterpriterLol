@@ -124,7 +124,3 @@ in order to get 0 = 1, 1 = 0
     goto(4)
     write("fizz")
     goto(4)
-
-and yes, there is an actuall
-[github](https://github.com/zlfplololo/InterpriterLol) to the
-interpriter, hence, the name
