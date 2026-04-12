@@ -30,6 +30,11 @@ def GTT():
         BIN_SHIFT_RIGHT = r">>"
         BIN_SHIFT_LEFT = r'<<'
         SET_REFERENCE = r'~='
+        TYPISATION_SYMBOL = r':\?'
+        OPENING_SQUIGGLY_BRACKET_WITH_COLUMN = r":{"
+        CLOSING_SQUIGGLY_BRACKET = r"}"
+        LINKAGE_SYMBOL = r':>'
+        INJECTION_SYMBOL = r'<:'
         OPENING_BRACKET = r'\('
         CLOSING_BRACKET = r'\)'
         OPENING_SQUARE_BRACKET = r'\['
@@ -50,7 +55,7 @@ def GTT():
         COMMA = r','
         DIVIDER = r';'
         NEWLINE = r'\n'
-        COMMENT = r'#.*\n'
+        COMMENT = r'#.*?(\n|$|\$#;)'
     class AbstractType(enum.Enum):
         GROUP = 0
         INDEX = 1
@@ -61,6 +66,10 @@ def GTT():
         REFERENCE = 6
         SETVAR = 7
         SETREFVAR = 8
+        BLOC = 9
+        LINKAGE = 10
+        INJECTION = 11
+        ENVIORMENT = 12
     return TokenType, AbstractType
 
 def execute_tokenizer(string):
@@ -155,6 +164,31 @@ def execute_tokenizer(string):
             for i in qscpL:
                 result[i[0]:i[1]+1] = self.RSN([{"TYPE": self.abstractype.INDEX, "value": self.AllProc(result[i[0]+1:i[1]])}])
 
+            i = len(result) -1
+            qscc = 0
+            qsc = False
+            qscp = [0,0]
+            qscpL = []
+            while i >= 0:
+                if not qsc:
+                    if result[i]["TYPE"] == self.tokentype.CLOSING_SQUIGGLY_BRACKET:
+                        qsc = True
+                        qscp[1] = i
+                else:
+                    if result[i]["TYPE"] == self.tokentype.CLOSING_SQUIGGLY_BRACKET:
+                        qscc +=1
+                    if result[i]["TYPE"] == self.tokentype.OPENING_SQUIGGLY_BRACKET_WITH_COLUMN:
+                        if qscc >0:
+                            qscc-=1
+                        else:
+                            qsc = False
+                            qscp[0] = i
+                            qscpL.append(qscp.copy())
+                i-=1
+
+            for i in qscpL:
+                result[i[0]:i[1]+1] = self.RSN([{"TYPE": self.abstractype.BLOC, "value": self.AllProc(result[i[0]+1:i[1]], last=True, splitbySN=True)}])
+
             return result
 
         def BTC(self, tokens):
@@ -185,6 +219,10 @@ def execute_tokenizer(string):
                     match result[i-1]["TYPE"]:
                         case self.tokentype.UNDEFINED_EXPRESSION:
                             result[i-1:i+1] = [{"TYPE": self.abstractype.CALL, 'name': result[i-1]['value'], 'args': [self.RIT(j) for j in result[i]['value']] if result[i]["TYPE"] == self.abstractype.COLLECTION else [self.RIT(result[i]['value'])]}]
+                        case self.abstractype.BLOC:
+                            result[i-1:i+1] = [{"TYPE": self.abstractype.CALL, 'name': result[i-1], 'args': [self.RIT(j) for j in result[i]['value']] if result[i]["TYPE"] == self.abstractype.COLLECTION else [self.RIT(result[i]['value'])]}]
+                        case self.abstractype.GROUP:
+                            result[i-1:i+1] = [{"TYPE": self.abstractype.CALL, 'name': self.AllProc([result[i-1]['value'][0]])[0], 'args': [self.RIT(j) for j in result[i]['value']] if result[i]["TYPE"] == self.abstractype.COLLECTION else [self.RIT(result[i]['value'])]}]
                     i-=1
                     isalredyminused = True
                 if result[i]["TYPE"] == self.abstractype.INDEX:
@@ -214,6 +252,24 @@ def execute_tokenizer(string):
                         result[i-1:i+1] = [{'TYPE': self.tokentype.NUMBER, 'value': f'-{result[i]['value']}'}]
                 if not isalredyminused:
                     i-=1
+
+            i = len(result) -1
+            isalredyminused = False
+            while i > 0:
+                isalredyminused = False
+                if result[i]['TYPE'] == self.tokentype.LINKAGE_SYMBOL:
+                    result[i-1:i+2] = [{"TYPE": self.abstractype.LINKAGE, "vars": self.RIT([result[i-1]])[0], "value": self.RIT([result[i+1]])[0]}]
+                    i-=1
+                    isalredyminused = True
+                if not isalredyminused:
+                    i-=1
+            i = 1
+            while i < len(result) -1:
+                if result[i]['TYPE'] == self.tokentype.INJECTION_SYMBOL:
+                    result[i-1:i+2] = [{"TYPE": self.abstractype.INJECTION, "to": self.RIT([result[i-1]])[0], "what": self.RIT([result[i+1]])[0]}]
+                    i-=2
+                i+=1
+
             i = len(result) -1
             isalredyminused = False
             while i > 0:
@@ -290,8 +346,4 @@ def execute_tokenizer(string):
     return tokenizer.AllProc(tokenizer.compile(string), last=True, splitbySN=True)
 
 if __name__ == "__main__":
-    print(execute_tokenizer('''
-                            # assling
-                            write(a)
-                            a = 1
-                            write(i)'''))
+    print(execute_tokenizer('''a <: b'''))

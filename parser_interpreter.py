@@ -1,7 +1,6 @@
 #parser_interpriter.py
 import tokenizer as tk
 import re
-variables = {}
 TokenType, Abstractype = tk.GTT()
 def Mathparcify(exp):
     res = exp.copy()
@@ -213,8 +212,11 @@ def execME(a):
         return toret, error
 
 class Interpriter():
+    def __init__(self, env={}, pev=[]):
+        self.variables = env
+        self.parentnamespaces = pev # used for REFERENCES
     def Inxecute(self, arg):
-        global TokenType, variables
+        global TokenType
         trash = ''
         error = [False, "", []]
         argC = arg.copy()
@@ -264,8 +266,8 @@ class Interpriter():
                     else: return 0, error
                 case TokenType.UNDEFINED_EXPRESSION.name:
                     var_name = argC[i]["value"]
-                    if var_name in variables:
-                        argC[i] = variables[var_name]
+                    if var_name in self.variables:
+                        argC[i] = self.variables[var_name]
                     else:
                         return 0, [True, "NVF", [var_name]]
                 case Abstractype.GROUP.name:
@@ -273,6 +275,23 @@ class Interpriter():
                 case Abstractype.LIST.name:
                     for j in range(len(argC[i]["items"])):
                         argC[i]["items"][j], error = self.Inxecute(argC[i]["items"][j])
+                case Abstractype.INJECTION.name:
+                    match argC[i]["what"]["TYPE"].name:
+                        case Abstractype.LIST.name:
+                            pass
+                        case TokenType.UNDEFINED_EXPRESSION.name:
+                            value, error = self.Inxecute([argC[i]["what"]])
+                            if not error[0]:
+                                if value["TYPE"].name != Abstractype.LIST.name:
+                                    return 0, [True, "CPIWNLA", [value["TYPE"].name]] #Cannot parse injection non list arguments
+                            else:
+                                return 0, error
+                        case _:
+                            return 0, [True, "CPIWNLA", [argC[i]["what"]["TYPE"].name]] #Cannot parse injection non list arguments
+                    match argC[i]["to"]["TYPE"].name:
+                        case Abstractype.LINKAGE.name:
+                            pass
+
                 case TokenType.CLOSING_BRACKET.name:
                     return 0, [True, "UCB", []] #unmatched closing bracket
                 case TokenType.CLOSING_SQUARE_BRACKET.name:
@@ -379,7 +398,7 @@ class Interpriter():
         return argC, error
 
     def interpret(self, truetokens):
-        global TokenType, variables
+        global TokenType
         error = [False, "", []]
         tokens = truetokens.copy()
         for token in tokens:
@@ -474,17 +493,17 @@ class Interpriter():
                         token["value"], error = self.Inxecute(token["value"])
                     if not error[0]:
                         if token["name"]["TYPE"].name == TokenType.UNDEFINED_EXPRESSION.name:
-                            if token["name"]["value"] in variables:
-                                var = variables[token['name']['value']]
+                            if token["name"]["value"] in self.variables:
+                                var = self.variables[token['name']['value']]
                                 if var["TYPE"].name == Abstractype.REFERENCE.name and (var['value']['TYPE'].name == TokenType.UNDEFINED_EXPRESSION.name or var['value']['TYPE'].name == Abstractype.GETINDEX.name):
                                     self.interpret([{"TYPE": Abstractype.SETVAR, 'name': var['value'], 'value': token['value']}])
                                 elif not (var == Abstractype.REFERENCE.name or (var == TokenType.UNDEFINED_EXPRESSION.name or var == Abstractype.GETINDEX.name)):
-                                    variables[token['name']['value']] = token['value'][0]    
+                                    self.variables[token['name']['value']] = token['value'][0]    
                             else:
-                                variables[token['name']['value']] = token['value'][0]
+                                self.variables[token['name']['value']] = token['value'][0]
                         elif token["name"]["TYPE"].name == Abstractype.GETINDEX.name:
                             if token["name"]['name'][0]['TYPE'].name == TokenType.UNDEFINED_EXPRESSION.name:
-                                if token["name"]["name"][0]["value"] in variables:
+                                if token["name"]["name"][0]["value"] in self.variables:
                                     tokencompiled, error = self.Inxecute(token['name']['name'])
                                     if not error[0]:
                                         selectedval = tokencompiled[0]
@@ -548,17 +567,17 @@ class Interpriter():
                         token["value"], error = self.Inxecute(token["value"])
                     if not error[0]:
                         if token["name"]["TYPE"].name == TokenType.UNDEFINED_EXPRESSION.name:
-                            if token["name"]["value"] in variables:
-                                var = variables[token['name']['value']]
+                            if token["name"]["value"] in self.variables:
+                                var = self.variables[token['name']['value']]
                                 if var["TYPE"].name == Abstractype.REFERENCE.name and (var['value']['TYPE'].name == TokenType.UNDEFINED_EXPRESSION.name or var['value']['TYPE'].name == Abstractype.GETINDEX.name):
-                                    variables[token['name']['value']] = token['value'][0]   
+                                    self.variables[token['name']['value']] = token['value'][0]   
                                 elif not (var == Abstractype.REFERENCE.name and (var == TokenType.UNDEFINED_EXPRESSION.name or var == Abstractype.GETINDEX.name)):
                                     error = [True, "CRNRVV", []] # cannot reset non-reference variable value
                             else:
-                                variables[token['name']['value']] = token['value'][0]
+                                self.variables[token['name']['value']] = token['value'][0]
                         elif token["name"]["TYPE"].name == Abstractype.GETINDEX.name:
                             if token["name"]['name'][0]['TYPE'].name == TokenType.UNDEFINED_EXPRESSION.name:
-                                if token["name"]["name"][0]["value"] in variables:
+                                if token["name"]["name"][0]["value"] in self.variables:
                                     tokencompiled, error = self.Inxecute(token['name']['name'])
                                     if not error[0]:
                                         selectedval = tokencompiled[0]
@@ -659,6 +678,8 @@ class Interpriter():
                     print(f"Not a Number: {error[2][0]}")
                 case "CBSFNOT":
                     print(f"cannot binary shift a fractional number of times")
+                case "CPIWNLA":
+                    print(f"Cannot parse injection with non-list arguments: {error[2][0]}")
                 case "":
                     print("This program has suffered major brain damage")
 
@@ -666,11 +687,11 @@ class Interpriter():
         return -1, 0
 if __name__ == "__main__":
     itpt =  Interpriter()
-    tokens0 = tk.execute_tokenizer("a = getnum('hello!: ')")[0]
-    tokens1 = tk.execute_tokenizer("b = ~a")[0]
-    tokens2 = tk.execute_tokenizer("write(1 << 1)")[0]
+    tokens0 = tk.execute_tokenizer("write(a :> a <: 1)")[0]
+    tokens1 = tk.execute_tokenizer("write('')")[0]
+    tokens2 = tk.execute_tokenizer("write('')")[0]
     #print(tokens2)
     itpt.interpret(tokens0)
     itpt.interpret(tokens1)
     itpt.interpret(tokens2)
-    print(variables)
+    print(itpt.variables)
